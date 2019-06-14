@@ -1,18 +1,20 @@
 from django.db import models
+from django.contrib.auth.models import AbstractUser
 
 # Create your models here.
-class Users(models.Model):
-	username = models.CharField(max_length=255, null=False)
+class Users(AbstractUser):
 	realnameVisible = models.BooleanField()
-	realname = models.CharField(max_length=255, null=True)
-	email = models.EmailField(max_length=70,blank=False)
 	def __str__(self):
-		return "un: {}, {} (visible: {})".format(self.username, self.realname, self.realnameVisible)
+		return "un: {}, {} (visible: {})".format(self.get_username(), 
+              self.get_full_name(), self.realnameVisible)
 
 class Landlords(models.Model):
 	name = models.CharField(max_length=255, null=False)
+	avgRating = models.IntegerField(null=True)
+	sumRating = models.IntegerField(null=True)
+	numRating = models.IntegerField(null=True)
 	def __str__(self):
-		return "un: {}, {} (visible: {})".format(self.name)
+		return "name: {}".format(self.name)
 
 class Ratings(models.Model):
 	authorID = models.IntegerField()

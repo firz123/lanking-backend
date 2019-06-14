@@ -11,7 +11,7 @@ class UserView(APIView):
 	Create users, list all users (for testing purposes)
 	"""
 	def get(self, request, format=None):
-		 users = Users.objects.all()
+		users = Users.objects.all()
 		serializer = UsersSerializer(users, many=True)
 		return Response(serializer.data)
 
