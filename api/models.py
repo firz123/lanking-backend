@@ -3,17 +3,16 @@ from django.db import models
 # Create your models here.
 class Users(models.Model):
 	username = models.CharField(max_length=255, null=False)
-	realnameVisible = forms.BooleanField(initial=True)
-    realname = models.CharField(max_length=255, null=True)
-    email = models.EmailField(max_length=70,blank=False)
-
-    def __str__(self):
-        return "un: {}, {} (visible: {})".format(self.username, self.realname, self.realnameVisible)
+	realnameVisible = models.BooleanField()
+	realname = models.CharField(max_length=255, null=True)
+	email = models.EmailField(max_length=70,blank=False)
+	def __str__(self):
+		return "un: {}, {} (visible: {})".format(self.username, self.realname, self.realnameVisible)
 
 class Landlords(models.Model):
-    name = models.CharField(max_length=255, null=False)
-    def __str__(self):
-        return "un: {}, {} (visible: {})".format(self.name)
+	name = models.CharField(max_length=255, null=False)
+	def __str__(self):
+		return "un: {}, {} (visible: {})".format(self.name)
 
 class Ratings(models.Model):
 	authorID = models.IntegerField()
@@ -21,15 +20,14 @@ class Ratings(models.Model):
 	propID = models.IntegerField()
 	comment = models.CharField(max_length=800, null=True)
 	rating = models.IntegerField()
-
-    def __str__(self):
-        return "{} of {}, by {} : {}".format(self.rating, self.landlordID, self.authorID, self.comment)
+	def __str__(self):
+		return "{} of {}, by {} : {}".format(self.rating, self.landlordID, self.authorID, self.comment)
 
 class Properties(models.Model):
 	landlordID = models.IntegerField(null=True)
-    addressline = models.CharField(max_length=255, null=False)
-    city = models.CharField(max_length=255, null=False)
-    STATES = [
+	addressline = models.CharField(max_length=255, null=False)
+	city = models.CharField(max_length=255, null=False)
+	STATES = [
 	    ('AL', 'Alabama'),
 	    ('AK', 'Alaska'),
 	    ('AZ', 'Arizona'),
@@ -88,6 +86,6 @@ class Properties(models.Model):
     )
 	zipcode = models.IntegerField()
 
-    def __str__(self):
-        return "{} {} {} {} owned by {}".format(self.addressline, 
-        	self.city, self.state, self.zipcode, self.landlordID)
+	def __str__(self):
+		return "{} {} {} {} owned by {}".format(self.addressline, 
+              self.city, self.state, self.zipcode, self.landlordID)
