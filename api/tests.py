@@ -6,7 +6,7 @@ from .models import Users, Landlords, Ratings, Properties
 from .serializers import UsersSerializer, LandlordsSerializer, RatingsSerializer, PropertiesSerializer
 
 
-class BaseTest(APITestCase):
+class BaseUserTest(APITestCase):
 	client = APIClient()
 	@staticmethod
 	def create_user(username="", password="", realnameVisible=""):
@@ -20,12 +20,36 @@ class BaseTest(APITestCase):
 		self.create_user("user3", "password3", False)
 		self.create_user("user4", "password4", False)
 
-class GetAllUsersTest(BaseTest):
-	def test_get_all_songs(self):
+class GetAllUsersTest(BaseUserTest):
+	def test_get_all_users(self):
 		response = self.client.get(
             reverse("users-all")
         )
 		expected = Users.objects.all()
 		serialized = UsersSerializer(expected, many=True)
+		self.assertEqual(response.data, serialized.data)
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+class BaseLandlordTest(APITestCase):
+	client = APIClient()
+	@staticmethod
+	def create_landlord(name=""):
+		if name != "":
+			Landlords.objects.create(name=name, avgRating=None, sumRating=0, numRating=0)
+
+	def setUp(self):
+		self.create_landlord("ll1")
+		self.create_landlord("ll2")
+		self.create_landlord("ll3")
+		self.create_landlord("ll4")
+
+
+class GetAllLandlordsTest(BaseLandlordTest):
+	def test_get_all_landlords(self):
+		response = self.client.get(
+            reverse("landlords-all")
+        )
+		expected = Landlords.objects.all()
+		serialized = LandlordsSerializer(expected, many=True)
 		self.assertEqual(response.data, serialized.data)
 		self.assertEqual(response.status_code, status.HTTP_200_OK)

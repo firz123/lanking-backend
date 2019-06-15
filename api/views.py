@@ -21,3 +21,19 @@ class UserView(APIView):
 			serializer.save()
 			return Response(serializer.data, status=status.HTTP_201_CREATED)
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class LandlordView(APIView):
+	"""
+	Create landlords, list all landlords (for testing purposes)
+	"""
+	def get(self, request, format=None):
+		landlords = Landlords.objects.all()
+		serializer = LandlordsSerializer(landlords, many=True)
+		return Response(serializer.data)
+
+	def post(self, request, format=None):
+		serializer = LandlordsSerializer(data=request.data)
+		if serializer.is_valid():
+			serializer.save()
+			return Response(serializer.data, status=status.HTTP_201_CREATED)
+		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
