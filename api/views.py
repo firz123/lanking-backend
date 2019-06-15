@@ -37,3 +37,35 @@ class LandlordView(APIView):
 			serializer.save()
 			return Response(serializer.data, status=status.HTTP_201_CREATED)
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class RatingView(APIView):
+	"""
+	Create rating, list all ratings (for testing purposes)
+	"""
+	def get(self, request, format=None):
+		ratings = Ratings.objects.all()
+		serializer = RatingsSerializer(ratings, many=True)
+		return Response(serializer.data)
+
+	def post(self, request, format=None):
+		serializer = RatingsSerializer(data=request.data)
+		if serializer.is_valid():
+			serializer.save()
+			return Response(serializer.data, status=status.HTTP_201_CREATED)
+		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PropertyView(APIView):
+	"""
+	Create property, list all properties (for testing purposes)
+	"""
+	def get(self, request, format=None):
+		props = Properties.objects.all()
+		serializer = PropertiesSerializer(props, many=True)
+		return Response(serializer.data)
+
+	def post(self, request, format=None):
+		serializer = PropertiesSerializer(data=request.data)
+		if serializer.is_valid():
+			serializer.save()
+			return Response(serializer.data, status=status.HTTP_201_CREATED)
+		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
