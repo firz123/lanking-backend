@@ -1,23 +1,23 @@
 from rest_framework import serializers
-from .models import Users, Landlords, Ratings, Properties
+from .models import UserAccount, Landlord, Rating, Property
 
 
-class UsersSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
 	class Meta:
-		model = Users 
+		model = UserAccount 
 		fields = '__all__'
 
-class LandlordsSerializer(serializers.ModelSerializer):
+class LandlordSerializer(serializers.ModelSerializer):
 	class Meta:
-		model = Landlords 
+		model = Landlord 
+		fields = ['name']
+
+class RatingSerializer(serializers.ModelSerializer):
+	class Meta:
+		model = Rating
 		fields = '__all__'
 
-class RatingsSerializer(serializers.ModelSerializer):
+class PropertySerializer(serializers.ModelSerializer):
 	class Meta:
-		model = Ratings
-		fields = '__all__'
-
-class PropertiesSerializer(serializers.ModelSerializer):
-	class Meta:
-		model = Properties 
+		model = Property
 		fields = '__all__'

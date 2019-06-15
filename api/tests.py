@@ -3,8 +3,8 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APITestCase, APIClient
 from rest_framework.views import status
-from .models import Users, Landlords, Ratings, Properties
-from .serializers import UsersSerializer, LandlordsSerializer, RatingsSerializer, PropertiesSerializer
+from .models import UserAccount, Landlord, Rating, Property
+from .serializers import UserSerializer, LandlordSerializer, RatingSerializer, PropertySerializer
 
 
 class BaseUserTest(APITestCase):
@@ -12,7 +12,7 @@ class BaseUserTest(APITestCase):
 	@staticmethod
 	def create_user(username="", password="", realnameVisible=""):
 		if all([username!="", password!="", realnameVisible!=""]):
-			Users.objects.create(username=username, password=password, 
+			UserAccount.objects.create(username=username, password=password, 
 				realnameVisible=False, is_staff=False)
 
 	def setUp(self):
@@ -26,8 +26,8 @@ class GetAllUsersTest(BaseUserTest):
 		response = self.client.get(
             reverse("users-all")
         )
-		expected = Users.objects.all()
-		serialized = UsersSerializer(expected, many=True)
+		expected = UserAccount.objects.all()
+		serialized = UserSerializer(expected, many=True)
 		self.assertEqual(response.data, serialized.data)
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -36,7 +36,7 @@ class BaseLandlordTest(APITestCase):
 	@staticmethod
 	def create_landlord(name=""):
 		if name != "":
-			Landlords.objects.create(name=name, avgRating=None, sumRating=0, numRating=0)
+			Landlord.objects.create(name=name, avgRating=None, sumRating=0, numRating=0)
 
 	def setUp(self):
 		self.create_landlord("ll1")
@@ -55,8 +55,8 @@ class LandlordTests(BaseLandlordTest):
 		response = self.client.get(
             reverse("landlords-all")
         )
-		expected = Landlords.objects.all()
-		serialized = LandlordsSerializer(expected, many=True)
+		expected = Landlord.objects.all()
+		serialized = LandlordSerializer(expected, many=True)
 		self.assertEqual(response.data, serialized.data)
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -66,7 +66,7 @@ class LandlordTests(BaseLandlordTest):
             data=json.dumps(self.valid_payload),
             content_type='application/json'
         )
-		self.assertEqual(len(Landlords.objects.all()), 5)
+		self.assertEqual(len(Landlord.objects.all()), 5)
 		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 	def test_create_invalid_landlord(self):
@@ -75,34 +75,41 @@ class LandlordTests(BaseLandlordTest):
             data=json.dumps(self.invalid_payload),
             content_type='application/json'
         )
-		self.assertEqual(len(Landlords.objects.all()), 4)
+		self.assertEqual(len(Landlord.objects.all()), 4)
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 class BaseRatingsTest(APITestCase):
 	client = APIClient()
 	@staticmethod
-	def create_rating(authorID="", landlordID="", 
-		propID="", comment="", rating=""):
-		if all([authorID!="", landlordID!="", propID!="", comment!="", rating!=""]):
-			Ratings.objects.create(authorID=authorID, landlordID=landlordID, 
-									propID=propID, comment=comment, rating=rating)
+	def create_rating(author_id="", landlord_id="", 
+		prop_id="", comment="", rating=""):
+		if all([author_id!="", landlord_id!="", prop_id!="", comment!="", rating!=""]):
+			Rating.objects.create(author_id=author_id, landlord_id=landlord_id, 
+									prop_id=prop_id, comment=comment, rating=rating)
+
+	@staticmethod
+	def create_landlord(name=""):
+		if name != "":
+			Landlord.objects.create(name=name, avgRating=None, sumRating=0, numRating=0)
 
 	def setUp(self):
-		self.create_rating(1, 1, 1, "Landlord 1's property 1", 3)
-		self.create_rating(2, 1, 2, "Landlord 1's property 2", 2)
-		self.create_rating(3, 2, 3, "Landlord 2's property 3", 4)
-		self.create_rating(4, 2, 4, "Landlord 2's property 4", 5)
+		self.create_landlord("ll1")
+		self.create_landlord("ll2")
+		self.create_rating(1, 16, 1, "Landlord 16's property 1", 3)
+		self.create_rating(2, 16, 2, "Landlord 16's property 2", 2)
+		self.create_rating(3, 17, 3, "Landlord 17's property 3", 4)
+		self.create_rating(4, 17, 4, "Landlord 17's property 4", 5)
 		self.valid_payload = {
-			'authorID': '5', 
-			'landlordID': '2', 
-			'propID': '4', 
-			'comment': 'Also lived in property 4 from landlord 2, another comment', 
+			'author_id': '5', 
+			'landlord_id': '17', 
+			'prop_id': '4', 
+			'comment': 'Also lived in property 4 from landlord 17, another comment', 
 			'rating': '5'
         }
 		self.invalid_payload = {
-        	'authorID': '', 
-			'landlordID': '', 
-			'propID': '', 
+        	'author_id': '', 
+			'landlord_id': '', 
+			'prop_id': '', 
 			'comment': 'This comment should not appear', 
 			'rating': ''
         }
@@ -112,8 +119,8 @@ class RatingTests(BaseRatingsTest):
 		response = self.client.get(
             reverse("ratings-all")
         )
-		expected = Ratings.objects.all()
-		serialized = RatingsSerializer(expected, many=True)
+		expected = Rating.objects.all()
+		serialized = RatingSerializer(expected, many=True)
 		self.assertEqual(response.data, serialized.data)
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -123,9 +130,11 @@ class RatingTests(BaseRatingsTest):
             data=json.dumps(self.valid_payload),
             content_type='application/json'
         )
-		for x in Ratings.objects.all():
-			print(x)
-		self.assertEqual(len(Ratings.objects.all()), 5)
+		self.assertEqual(Landlord.objects.get(id__exact=16).avgRating, None)
+		self.assertEqual(Landlord.objects.get(id__exact=16).numRating, 0)
+		self.assertEqual(Landlord.objects.get(id__exact=17).avgRating, 5)
+		self.assertEqual(Landlord.objects.get(id__exact=17).numRating, 1)
+		self.assertEqual(len(Rating.objects.all()), 5)
 		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
 	def test_create_invalid_rating(self):
@@ -134,5 +143,5 @@ class RatingTests(BaseRatingsTest):
             data=json.dumps(self.invalid_payload),
             content_type='application/json'
         )
-		self.assertEqual(len(Ratings.objects.all()), 4)
+		self.assertEqual(len(Rating.objects.all()), 4)
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

@@ -2,31 +2,21 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 # Create your models here.
-class Users(AbstractUser):
-	realnameVisible = models.BooleanField()
-	def __str__(self):
-		return "un: {}, {} (visible: {})".format(self.get_username(), 
-              self.get_full_name(), self.realnameVisible)
-
-class Landlords(models.Model):
-	name = models.CharField(max_length=255, null=False)
-	avgRating = models.IntegerField(null=True)
-	sumRating = models.IntegerField(null=True)
-	numRating = models.IntegerField(null=True)
-	def __str__(self):
-		return "name: {}".format(self.name)
-
-class Ratings(models.Model):
-	authorID = models.IntegerField()
-	landlordID = models.IntegerField()
-	propID = models.IntegerField()
+class Rating(models.Model):
+	author_id = models.IntegerField()
+	landlord_id = models.IntegerField()
+	prop_id = models.IntegerField()
 	comment = models.CharField(max_length=800, null=True)
 	rating = models.IntegerField()
 	def __str__(self):
-		return "{} of {}, by {} : {}".format(self.rating, self.landlordID, self.authorID, self.comment)
+		return "rating: {}, landlord id: {}, author id: {} : {}".format(
+			self.rating,
+			self.landlord_id, 
+			self.author_id, 
+			self.comment)
 
-class Properties(models.Model):
-	landlordID = models.IntegerField(null=True)
+class Property(models.Model):
+	landlord_id = models.IntegerField(null=True)
 	addressline = models.CharField(max_length=255, null=False)
 	city = models.CharField(max_length=255, null=False)
 	STATES = [
@@ -90,4 +80,20 @@ class Properties(models.Model):
 
 	def __str__(self):
 		return "{} {} {} {} owned by {}".format(self.addressline, 
-              self.city, self.state, self.zipcode, self.landlordID)
+              self.city, self.state, self.zipcode, self.landlord_id)
+
+class UserAccount(AbstractUser):
+	realnameVisible = models.BooleanField()
+	def __str__(self):
+		return "un: {}, name: {} (visible: {})".format(self.get_username(), 
+              self.get_full_name(), self.realnameVisible)
+
+class Landlord(models.Model):
+	name = models.CharField(max_length=255, null=False)
+	ratings = models.ManyToManyField(Rating)
+	avgRating = models.IntegerField(null=True)
+	sumRating = models.IntegerField(null=True)
+	numRating = models.IntegerField(null=True)
+	def __str__(self):
+		return "id: {} name: {} avgRating: {}, numRating: {}".format(self.id, 
+			self.name, self.avgRating, self.numRating)

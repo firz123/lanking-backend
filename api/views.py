@@ -1,6 +1,6 @@
 #from rest_framework import generics
-from .models import Users, Landlords, Ratings, Properties
-from .serializers import UsersSerializer, LandlordsSerializer, RatingsSerializer, PropertiesSerializer
+from .models import UserAccount, Landlord, Rating, Property
+from .serializers import UserSerializer, LandlordSerializer, RatingSerializer, PropertySerializer
 from django.http import Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -11,12 +11,12 @@ class UserView(APIView):
 	Create users, list all users (for testing purposes)
 	"""
 	def get(self, request, format=None):
-		users = Users.objects.all()
-		serializer = UsersSerializer(users, many=True)
+		users = UserAccount.objects.all()
+		serializer = UserSerializer(users, many=True)
 		return Response(serializer.data)
 
 	def post(self, request, format=None):
-		serializer = UsersSerializer(data=request.data)
+		serializer = UserSerializer(data=request.data)
 		if serializer.is_valid():
 			serializer.save()
 			return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -27,12 +27,12 @@ class LandlordView(APIView):
 	Create landlords, list all landlords (for testing purposes)
 	"""
 	def get(self, request, format=None):
-		landlords = Landlords.objects.all()
-		serializer = LandlordsSerializer(landlords, many=True)
+		landlords = Landlord.objects.all()
+		serializer = LandlordSerializer(landlords, many=True)
 		return Response(serializer.data)
 
 	def post(self, request, format=None):
-		serializer = LandlordsSerializer(data=request.data)
+		serializer = LandlordSerializer(data=request.data)
 		if serializer.is_valid():
 			serializer.save()
 			return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -43,14 +43,22 @@ class RatingView(APIView):
 	Create rating, list all ratings (for testing purposes)
 	"""
 	def get(self, request, format=None):
-		ratings = Ratings.objects.all()
-		serializer = RatingsSerializer(ratings, many=True)
+		ratings = Rating.objects.all()
+		serializer = RatingSerializer(ratings, many=True)
 		return Response(serializer.data)
 
 	def post(self, request, format=None):
-		serializer = RatingsSerializer(data=request.data)
+		serializer = RatingSerializer(data=request.data)
 		if serializer.is_valid():
-			serializer.save()
+			#now add it to the landlord's many to many field
+			rating = Rating(**serializer.validated_data)
+			landlord = Landlord.objects.get(id__exact=rating.landlord_id)
+			landlord.sumRating = landlord.sumRating + rating.rating
+			landlord.numRating = landlord.numRating + 1
+			landlord.avgRating = landlord.sumRating / landlord.numRating
+			landlord.save()
+			rating.save()
+			landlord.ratings.add(rating)
 			return Response(serializer.data, status=status.HTTP_201_CREATED)
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -59,12 +67,12 @@ class PropertyView(APIView):
 	Create property, list all properties (for testing purposes)
 	"""
 	def get(self, request, format=None):
-		props = Properties.objects.all()
-		serializer = PropertiesSerializer(props, many=True)
+		props = Property.objects.all()
+		serializer = PropertySerializer(props, many=True)
 		return Response(serializer.data)
 
 	def post(self, request, format=None):
-		serializer = PropertiesSerializer(data=request.data)
+		serializer = PropertySerializer(data=request.data)
 		if serializer.is_valid():
 			serializer.save()
 			return Response(serializer.data, status=status.HTTP_201_CREATED)
