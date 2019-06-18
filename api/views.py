@@ -77,9 +77,11 @@ class LandlordIDView(APIView):
 		serializer = None
 		if ratings is not None:
 			serializer = RatingSerializer(landlord.ratings, many=True)
+			return Response(serializer.data, status=status.HTTP_200_OK)
 		if properties is not None:
 			serializer = PropertySerializer(landlord.properties, many=True)
-		return Response(serializer.data, status=status.HTTP_200_OK)
+			return Response(serializer.data, status=status.HTTP_200_OK)
+		return Response(status=status.HTTP_200_OK)
 
 class RatingView(APIView):
 	"""
@@ -130,8 +132,8 @@ class PropertyView(APIView):
 			prop = Property(**serializer.validated_data)
 			landlord = Landlord.objects.get(id__exact=prop.landlord_id)
 			landlord.save()
-			rating.save()
-			landlord.ratings.add(rating)
+			prop.save()
+			landlord.properties.add(prop)
 			return Response(serializer.data, status=status.HTTP_201_CREATED)
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -145,5 +147,5 @@ class PropertyIDView(APIView):
 			return Response(status=status.HTTP_400_BAD_REQUEST)
 		prop = Property.objects.get(id__exact=property_id)
 		landlord = prop.landlord_set.all()
-		serializer = LandlordSerializer(landlord)
-		return Response(serializer.data)
+		serializer = LandlordSerializer(landlord, many=True)
+		return Response(serializer.data, status=status.HTTP_200_OK)

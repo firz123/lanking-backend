@@ -107,13 +107,17 @@ class BaseRatingsTest(APITestCase):
 	def setUp(self):
 		self.create_landlord("John", "Smith")
 		self.create_landlord("Jane", "Doe")
-		self.create_rating(1, 12, 1, "Landlord 12's property 1", 3)
-		self.create_rating(2, 12, 2, "Landlord 12's property 2", 2)
-		self.create_rating(3, 13, 3, "Landlord 13's property 3", 4)
-		self.create_rating(4, 13, 4, "Landlord 13's property 4", 5)
+		ids = []
+		for ll in Landlord.objects.all():
+			ids.append(str(ll.id))
+		ids.sort()
+		self.create_rating(1, ids[0], 1, "rating 1", 3)
+		self.create_rating(2, ids[0], 2, "rating 2", 2)
+		self.create_rating(3, ids[1], 3, "rating 3", 4)
+		self.create_rating(4, ids[1], 4, "rating 4", 5)
 		self.valid_payload = {
 			'author_id': '5', 
-			'landlord_id': '13', 
+			'landlord_id': '' + str(ids[1]), 
 			'prop_id': '4', 
 			'comment': 'Also lived in property 4 from landlord 13, another comment', 
 			'rating': '5'
@@ -133,10 +137,14 @@ class CreateRatingTests(BaseRatingsTest):
             data=json.dumps(self.valid_payload),
             content_type='application/json'
         )
-		self.assertEqual(Landlord.objects.get(id__exact=12).avg_rating, None)
-		self.assertEqual(Landlord.objects.get(id__exact=12).num_rating, 0)
-		self.assertEqual(Landlord.objects.get(id__exact=13).avg_rating, 5)
-		self.assertEqual(Landlord.objects.get(id__exact=13).num_rating, 1)
+		ids = []
+		for ll in Landlord.objects.all():
+			ids.append(str(ll.id))
+		ids.sort()
+		self.assertEqual(Landlord.objects.get(id__exact=ids[0]).avg_rating, None)
+		self.assertEqual(Landlord.objects.get(id__exact=ids[0]).num_rating, 0)
+		self.assertEqual(Landlord.objects.get(id__exact=ids[1]).avg_rating, 5)
+		self.assertEqual(Landlord.objects.get(id__exact=ids[1]).num_rating, 1)
 		self.assertEqual(len(Rating.objects.all()), 5)
 		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
@@ -148,3 +156,143 @@ class CreateRatingTests(BaseRatingsTest):
         )
 		self.assertEqual(len(Rating.objects.all()), 4)
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class BasePropertyTest(APITestCase):
+	client = APIClient()
+	@staticmethod
+	def create_property(add="", city="", 
+		zipcode="", state="", ll_id=""):
+		if all([add!="", city!="", zipcode!="", state!="", ll_id!=""]):
+			prop = Property(landlord_id=ll_id, addressline=add, 
+							city=city, state=state, zipcode=zipcode)
+			landlord = Landlord.objects.get(id__exact=ll_id)
+			landlord.save()
+			prop.save()
+			landlord.properties.add(prop)
+
+	@staticmethod
+	def create_landlord(first="", last=""):
+		if first != "" and last != "":
+			Landlord.objects.create(first=first, last=last, 
+				avg_rating=None, sum_rating=0, num_rating=0)
+
+	@staticmethod
+	def create_rating(author_id="", landlord_id="", 
+		prop_id="", comment="", rating=""):
+		if all([author_id!="", landlord_id!="", prop_id!="", comment!="", rating!=""]):
+			rating = Rating(author_id=author_id, landlord_id=landlord_id, 
+									prop_id=prop_id, comment=comment, rating=rating)
+			landlord = Landlord.objects.get(id__exact=landlord_id)
+			landlord.save()
+			rating.save()
+			landlord.ratings.add(rating)
+
+	def setUp(self):
+		self.create_landlord("John", "Doe")
+		self.create_landlord("Jane", "Doe")
+		self.create_landlord("Andrew", "Smith")
+		self.create_landlord("Abby", "Smith")
+		ids = []
+		for ll in Landlord.objects.all():
+			ids.append(str(ll.id))
+		ids.sort()
+		self.create_property("122 Sample St.", "Townville", "00000", "AL", ids[0])
+		self.create_property("456 Block Boulevard", "Cityopolis", "11111", "NY", ids[1])
+		self.create_property("67 Center Ct.", "Suburb", "22222", "CA", ids[2])
+		self.create_property("789 Road Rd.", "Placeville", "33333", "TX", ids[3])
+		self.create_rating(1, ids[0], 1, "rating 1", 3)
+		self.create_rating(2, ids[0], 2, "rating 2", 2)
+		self.create_rating(3, ids[1], 3, "rating 3", 4)
+		self.create_rating(4, ids[1], 4, "rating 4", 5)
+		self.valid_payload = {
+			'landlord_id': '' + ids[0], 
+			'addressline': '123 Example St.', 
+			'city': 'Townville', 
+			'state': 'AL', 
+			'zipcode': '00000'
+        }
+		self.invalid_payload = {
+        	'landlord_id': '', 
+			'addressline': '', 
+			'city': '', 
+			'state': '', 
+			'zipcode': ''
+        }
+
+class CreatePropertyTests(BasePropertyTest):
+	def test_create_valid_property(self):
+		response = self.client.post(
+            reverse('properties'),
+            data=json.dumps(self.valid_payload),
+            content_type='application/json'
+        )
+		ids = []
+		for ll in Landlord.objects.all():
+			ids.append(str(ll.id))
+		ids.sort()
+		self.assertEqual(len(Landlord.objects.get(id__exact=ids[0]).properties.all()), 2)
+		self.assertEqual(len(Property.objects.all()), 5)
+		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+	def test_create_invalid_property(self):
+		response = self.client.post(
+            reverse('properties'),
+            data=json.dumps(self.invalid_payload),
+            content_type='application/json'
+        )
+		self.assertEqual(len(Property.objects.all()), 4)
+		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+class QueryLandlordIDTest(BasePropertyTest):
+	def test_query_ratings_by_landlord(self):
+		ids = []
+		for ll in Landlord.objects.all():
+			ids.append(ll.id)
+		ids.sort()
+		response = self.client.get(
+            reverse("landlord-id") + 
+            "?id=%d&get_ratings=true" % (ids[0])
+        )
+		expected = Landlord.objects.get(id__exact=ids[0]).ratings.all()
+		serialized = RatingSerializer(expected, many=True)
+		self.assertEqual(response.data, serialized.data)
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+	def test_query_properties_by_landlord(self):
+		ids = []
+		for ll in Landlord.objects.all():
+			ids.append(ll.id)
+		ids.sort()
+		response = self.client.get(
+            reverse("landlord-id") + 
+            "?id=%d&get_properties=true" % (ids[0])
+        )
+		expected = Landlord.objects.get(id__exact=ids[0]).properties.all()
+		serialized = PropertySerializer(expected, many=True)
+		self.assertEqual(response.data, serialized.data)
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+class QueryPropertyIDTest(BasePropertyTest):
+	def test_query_landlord_by_property(self):
+		ids = []
+		for ll in Property.objects.all():
+			ids.append(ll.id)
+		ids.sort()
+		response = self.client.get(
+            reverse("property-id") + "?id=%d" % (ids[0])
+        )
+		expected = Property.objects.get(id__exact=ids[0]).landlord_set.all()
+		serialized = LandlordSerializer(expected, many=True)
+		self.assertEqual(response.data, serialized.data)
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+class QueryUserRatingsTest(BasePropertyTest):
+	def test_query_ratings_by_user(self):
+		response = self.client.get(
+            reverse("user-ratings") + "?id=1"
+        )
+		expected = Rating.objects.filter(author_id__exact=1)
+		serialized = RatingSerializer(expected, many=True)
+		self.assertEqual(response.data, serialized.data)
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
