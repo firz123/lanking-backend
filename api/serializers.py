@@ -10,7 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
 class LandlordSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = Landlord 
-		fields = ['name']
+		fields = ['first', 'last']
 
 class RatingSerializer(serializers.ModelSerializer):
 	class Meta:

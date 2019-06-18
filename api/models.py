@@ -89,11 +89,17 @@ class UserAccount(AbstractUser):
               self.get_full_name(), self.realnameVisible)
 
 class Landlord(models.Model):
-	name = models.CharField(max_length=255, null=False)
+	first = models.CharField(max_length=255, null=False)
+	last = models.CharField(max_length=255, null=False)
 	ratings = models.ManyToManyField(Rating)
-	avgRating = models.IntegerField(null=True)
-	sumRating = models.IntegerField(null=True)
-	numRating = models.IntegerField(null=True)
+	properties = models.ManyToManyField(Property)
+	avg_rating = models.IntegerField(null=True)
+	sum_rating = models.IntegerField(null=True)
+	num_rating = models.IntegerField(null=True)
+
 	def __str__(self):
 		return "id: {} name: {} avgRating: {}, numRating: {}".format(self.id, 
-			self.name, self.avgRating, self.numRating)
+			self.first + " " + self.last, self.avg_rating, self.num_rating)
+
+
+	
