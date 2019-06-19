@@ -1,12 +1,14 @@
 #from rest_framework import generics
 from .models import UserAccount, Landlord, Rating, Property
 from rest_framework.authtoken.models import Token
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated 
 from .serializers import UserSerializer, LandlordSerializer, RatingSerializer, PropertySerializer
 from django.http import Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from django.contrib.auth import authenticate
+
 
 class UserView(APIView):
 	"""
@@ -109,11 +111,17 @@ class RatingView(APIView):
 	"""
 	Create rating from POST data, update landlord ratings
 	"""
+	authentication_classes = (TokenAuthentication,)
+	permission_classes = (IsAuthenticated,)   
+
 	def post(self, request, format=None):
 		serializer = RatingSerializer(data=request.data)
 		if serializer.is_valid():
 			#now add it to the landlord's many to many field
 			rating = Rating(**serializer.validated_data)
+			if request.user.id != rating.author_id:
+				return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 			landlord = Landlord.objects.get(id__exact=rating.landlord_id)
 			landlord.sum_rating = landlord.sum_rating + rating.rating
 			landlord.num_rating = landlord.num_rating + 1

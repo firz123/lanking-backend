@@ -41,7 +41,7 @@ class BaseUserTest(APITestCase):
 			'password': '', 
         }
 
-class BaseLandlordTest(APITestCase):
+class BaseLandlordTest(BaseUserTest):
 	client = APIClient()
 	@staticmethod
 	def create_landlord(first="", last=""):
@@ -72,6 +72,7 @@ class BaseRatingsTest(BaseLandlordTest):
 									prop_id=prop_id, comment=comment, rating=rating)
 
 	def setUp(self):
+		self.create_user("user1", "password1", False)
 		self.create_landlord("John", "Smith")
 		self.create_landlord("Jane", "Doe")
 		self.ll_ids = []
@@ -83,7 +84,7 @@ class BaseRatingsTest(BaseLandlordTest):
 		self.create_rating(3, self.ll_ids[1], 3, "rating 3", 4)
 		self.create_rating(4, self.ll_ids[1], 4, "rating 4", 5)
 		self.valid_payload = {
-			'author_id': '5', 
+			'author_id': '' + str(UserAccount.objects.get(username="user1").id), 
 			'landlord_id': '' + str(self.ll_ids[1]), 
 			'prop_id': '4', 
 			'comment': 'Also lived in property 4 from landlord 13, another comment', 
@@ -189,10 +190,14 @@ class CreateLandlordTest(BaseLandlordTest):
 
 class CreateRatingTests(BaseRatingsTest):
 	def test_create_valid_rating(self):
+		user = UserAccount.objects.get(username="user1")
+		token = Token.objects.get(user=user)
+		header = {'HTTP_AUTHORIZATION': 'Token %s' % token.key}
 		response = self.client.post(
             reverse('ratings'),
             data=json.dumps(self.valid_payload),
-            content_type='application/json'
+            content_type='application/json',
+            **header
         )
 		self.assertEqual(Landlord.objects.get(id__exact=self.ll_ids[0]).avg_rating, None)
 		self.assertEqual(Landlord.objects.get(id__exact=self.ll_ids[0]).num_rating, 0)
@@ -201,11 +206,24 @@ class CreateRatingTests(BaseRatingsTest):
 		self.assertEqual(len(Rating.objects.all()), 5)
 		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
+	def test_create_invalid_header(self):
+		response = self.client.post(
+            reverse('ratings'),
+            data=json.dumps(self.valid_payload),
+            content_type='application/json'
+        )
+		self.assertEqual(len(Rating.objects.all()), 4)
+		self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
 	def test_create_invalid_rating(self):
+		user = UserAccount.objects.get(username="user1")
+		token = Token.objects.get(user=user)
+		header = {'HTTP_AUTHORIZATION': 'Token %s' % token.key}
 		response = self.client.post(
             reverse('ratings'),
             data=json.dumps(self.invalid_payload),
-            content_type='application/json'
+            content_type='application/json',
+            **header
         )
 		self.assertEqual(len(Rating.objects.all()), 4)
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
