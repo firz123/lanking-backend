@@ -1,10 +1,12 @@
 #from rest_framework import generics
 from .models import UserAccount, Landlord, Rating, Property
+from rest_framework.authtoken.models import Token
 from .serializers import UserSerializer, LandlordSerializer, RatingSerializer, PropertySerializer
 from django.http import Http404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.contrib.auth import authenticate
 
 class UserView(APIView):
 	"""
@@ -13,9 +15,29 @@ class UserView(APIView):
 	def post(self, request, format=None):
 		serializer = UserSerializer(data=request.data)
 		if serializer.is_valid():
-			serializer.save()
+			user_acct = UserAccount(**serializer.validated_data)
+			user_acct.set_password(user_acct.password)
+			user_acct.save()
+			Token.objects.create(user=user_acct)
 			return Response(serializer.data, status=status.HTTP_201_CREATED)
 		return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UserAuthView(APIView):
+	"""
+	Login users from POST data
+	"""
+	def post(self, request, format=None):
+		username = request.data.get("username")
+		password = request.data.get("password")
+		if username is None or password is None:
+			return Response(status=status.HTTP_400_BAD_REQUEST)
+		try:
+			user = UserAccount.objects.get(username=username)
+		except Exception as e:
+			return Response(status=status.HTTP_403_FORBIDDEN)
+		token = Token.objects.get(user=user)
+		return Response({'token': token.key},
+                    status=status.HTTP_200_OK)
 
 class UserRatingsView(APIView):
 	"""

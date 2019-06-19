@@ -5,7 +5,8 @@ from .models import UserAccount, Landlord, Rating, Property
 class UserSerializer(serializers.ModelSerializer):
 	class Meta:
 		model = UserAccount 
-		fields = '__all__'
+		fields = ['username', 'password', 'realnameVisible', 'is_staff']
+
 
 class LandlordSerializer(serializers.ModelSerializer):
 	class Meta:

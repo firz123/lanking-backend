@@ -3,7 +3,9 @@ from django.test import TestCase
 from django.urls import reverse
 from rest_framework.test import APITestCase, APIClient
 from rest_framework.views import status
+from django.contrib.auth import authenticate
 from .models import UserAccount, Landlord, Rating, Property
+from rest_framework.authtoken.models import Token
 from .serializers import UserSerializer, LandlordSerializer, RatingSerializer, PropertySerializer
 
 class BaseUserTest(APITestCase):
@@ -11,14 +13,33 @@ class BaseUserTest(APITestCase):
 	@staticmethod
 	def create_user(username="", password="", realnameVisible=""):
 		if all([username!="", password!="", realnameVisible!=""]):
-			UserAccount.objects.create(username=username, password=password, 
+			user = UserAccount(username=username, 
 				realnameVisible=False, is_staff=False)
+			user.set_password(password)
+			user.save()
+			Token.objects.create(user=user)
 
 	def setUp(self):
 		self.create_user("user1", "password1", False)
 		self.create_user("user2", "password2", False)
-		self.create_user("user3", "password3", False)
-		self.create_user("user4", "password4", False)
+		self.valid_user_payload = {
+			'username': 'user3', 
+			'password': 'password3', 
+			'realnameVisible': 'False', 
+        }
+		self.invalid_user_payload = {
+        	'username': '', 
+			'password': '', 
+			'realnameVisible': '', 
+        }
+		self.valid_login_payload = {
+			'username': 'user1', 
+			'password': 'password1'
+        }
+		self.invalid_login_payload = {
+        	'username': '', 
+			'password': '', 
+        }
 
 class BaseLandlordTest(APITestCase):
 	client = APIClient()
@@ -127,6 +148,25 @@ class BasePropertyTest(BaseRatingsTest):
 			'state': '', 
 			'zipcode': ''
         }
+
+class CreateUserTest(BaseUserTest):
+	def test_create_valid_user(self):
+		response = self.client.post(
+            reverse('create-user'),
+            data=json.dumps(self.valid_user_payload),
+            content_type='application/json'
+        )
+		self.assertEqual(len(UserAccount.objects.all()), 3)
+		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+	def test_create_invalid_user(self):
+		response = self.client.post(
+            reverse('create-user'),
+            data=json.dumps(self.invalid_user_payload),
+            content_type='application/json'
+        )
+		self.assertEqual(len(UserAccount.objects.all()), 2)
+		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 class CreateLandlordTest(BaseLandlordTest):
 	def test_create_valid_landlord(self):
@@ -308,3 +348,21 @@ class QueryPropertyIDTest(BasePropertyTest):
 		self.assertEqual(response.data, serialized.data)
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+class UserLoginTest(BaseUserTest):
+	def test_login(self):
+		response = self.client.post(
+            reverse('user-login'),
+            data=json.dumps(self.valid_login_payload),
+            content_type='application/json'
+        )
+		token = Token.objects.get(user=UserAccount.objects.get(username='user1'))
+		self.assertEqual(response.data, {'token': token.key})
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+	def test_invalid_login(self):
+		response = self.client.post(
+            reverse('user-login'),
+            data=json.dumps(self.invalid_login_payload),
+            content_type='application/json'
+        )
+		self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

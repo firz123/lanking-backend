@@ -88,6 +88,7 @@ class UserAccount(AbstractUser):
 		return "un: {}, name: {} (visible: {})".format(self.get_username(), 
               self.get_full_name(), self.realnameVisible)
 
+
 class Landlord(models.Model):
 	first = models.CharField(max_length=255, null=False)
 	last = models.CharField(max_length=255, null=False)
@@ -100,6 +101,4 @@ class Landlord(models.Model):
 	def __str__(self):
 		return "id: {} name: {} avgRating: {}, numRating: {}".format(self.id, 
 			self.first + " " + self.last, self.avg_rating, self.num_rating)
-
-
 	
