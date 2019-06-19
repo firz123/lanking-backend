@@ -20,7 +20,6 @@ class BaseUserTest(APITestCase):
 		self.create_user("user3", "password3", False)
 		self.create_user("user4", "password4", False)
 
-
 class BaseLandlordTest(APITestCase):
 	client = APIClient()
 	@staticmethod
@@ -148,33 +147,6 @@ class CreateLandlordTest(BaseLandlordTest):
 		self.assertEqual(len(Landlord.objects.all()), 4)
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-class QueryLandlordTest(BaseLandlordTest):
-	def test_query_landlords_first(self):
-		response = self.client.get(
-            reverse("landlords") + "?first=jane"
-        )
-		expected = Landlord.objects.filter(first__icontains="jane")
-		serialized = LandlordSerializer(expected, many=True)
-		self.assertEqual(response.data, serialized.data)
-		self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-	def test_query_landlords_last(self):
-		response = self.client.get(
-            reverse("landlords") + "?last=doe"
-        )
-		expected = Landlord.objects.filter(last__icontains="Doe")
-		serialized = LandlordSerializer(expected, many=True)
-		self.assertEqual(response.data, serialized.data)
-		self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-	def test_query_landlords_missing(self):
-		response = self.client.get(
-            reverse("landlords") + "?last=Johnson"
-        )
-		self.assertEqual(response.data, [])
-		self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-
 class CreateRatingTests(BaseRatingsTest):
 	def test_create_valid_rating(self):
 		response = self.client.post(
@@ -220,6 +192,42 @@ class CreatePropertyTests(BasePropertyTest):
 		self.assertEqual(len(Property.objects.all()), 4)
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+class QueryUserRatingsTest(BasePropertyTest):
+	def test_query_ratings_by_user(self):
+		response = self.client.get(
+            reverse("user-ratings") + "?id=1"
+        )
+		expected = Rating.objects.filter(author_id__exact=1)
+		serialized = RatingSerializer(expected, many=True)
+		self.assertEqual(response.data, serialized.data)
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+class QueryLandlordTest(BaseLandlordTest):
+	def test_query_landlords_first(self):
+		response = self.client.get(
+            reverse("landlords") + "?first=jane"
+        )
+		expected = Landlord.objects.filter(first__icontains="jane")
+		serialized = LandlordSerializer(expected, many=True)
+		self.assertEqual(response.data, serialized.data)
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+	def test_query_landlords_last(self):
+		response = self.client.get(
+            reverse("landlords") + "?last=doe"
+        )
+		expected = Landlord.objects.filter(last__icontains="Doe")
+		serialized = LandlordSerializer(expected, many=True)
+		self.assertEqual(response.data, serialized.data)
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+	def test_query_landlords_missing(self):
+		response = self.client.get(
+            reverse("landlords") + "?last=Johnson"
+        )
+		self.assertEqual(response.data, [])
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
 class QueryLandlordIDTest(BasePropertyTest):
 	def test_query_ratings_by_landlord(self):
 		response = self.client.get(
@@ -241,6 +249,55 @@ class QueryLandlordIDTest(BasePropertyTest):
 		self.assertEqual(response.data, serialized.data)
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+class QueryPropertyTest(BasePropertyTest):
+	def test_query_property_by_address(self):
+		response = self.client.get(
+            reverse("properties") + "?address=%s" % "block"
+        )
+		expected = Property.objects.filter(addressline__icontains="block")
+		serialized = PropertySerializer(expected, many=True)
+		self.assertEqual(response.data, serialized.data)
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+	def test_query_property_by_state(self):
+		response = self.client.get(
+            reverse("properties") + "?state=%s" % "CA"
+        )
+		expected = Property.objects.filter(state__exact="CA")
+		serialized = PropertySerializer(expected, many=True)
+		self.assertEqual(response.data, serialized.data)
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+	def test_query_property_by_city(self):
+		response = self.client.get(
+            reverse("properties") + "?city=%s" % "ville"
+        )
+		expected = Property.objects.filter(city__icontains="ville")
+		self.assertEqual(len(expected), 2)
+		serialized = PropertySerializer(expected, many=True)
+		self.assertEqual(response.data, serialized.data)
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+	def test_query_property_by_zip(self):
+		response = self.client.get(
+            reverse("properties") + "?zip=%s" % "33333"
+        )
+		expected = Property.objects.filter(zipcode__exact="33333")
+		serialized = PropertySerializer(expected, many=True)
+		self.assertEqual(response.data, serialized.data)
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+	def test_query_property_combination(self):
+		response = self.client.get(
+            reverse("properties") + "?city=%s&state=%s" % ("ville", "AL") 
+        )
+		expected = Property.objects.filter(city__icontains="ville").filter(state__exact="AL")
+		self.assertEqual(len(expected), 1)
+		serialized = PropertySerializer(expected, many=True)
+		self.assertEqual(response.data, serialized.data)
+		self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
 class QueryPropertyIDTest(BasePropertyTest):
 	def test_query_landlord_by_property(self):
 		response = self.client.get(
@@ -251,12 +308,3 @@ class QueryPropertyIDTest(BasePropertyTest):
 		self.assertEqual(response.data, serialized.data)
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-class QueryUserRatingsTest(BasePropertyTest):
-	def test_query_ratings_by_user(self):
-		response = self.client.get(
-            reverse("user-ratings") + "?id=1"
-        )
-		expected = Rating.objects.filter(author_id__exact=1)
-		serialized = RatingSerializer(expected, many=True)
-		self.assertEqual(response.data, serialized.data)
-		self.assertEqual(response.status_code, status.HTTP_200_OK)
